@@ -52,7 +52,20 @@ func (cmdSet *CommandSet) InvokeCommand(cmdName string, args []string) error {
 		in[i] = reflect.ValueOf(arg)
 	}
 
-	method.Call(in)
-
-	return nil
+	results := method.Call(in)
+	if len(results) == 0 {
+		return nil
+	} else {
+		result := results[0].Interface()
+		if result == nil {
+			return nil
+		} else {
+			err, ok := result.(error)
+			if ok {
+				return err
+			} else {
+				return nil
+			}
+		}
+	}
 }

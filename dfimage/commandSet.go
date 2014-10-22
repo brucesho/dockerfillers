@@ -23,6 +23,7 @@ func NewCommandSet() *CommandSet {
 func (cmdSet *CommandSet) RegisterCommands() {
 	for _, c := range [][]string{
 		{"diffsize", "size on disk of an image, not including its parent"},
+		{"diffchanges", "changes of an image relative to its parent"},
 		{"help", "lists available commands"},
 	} {
 		cmd := &Command{c[0], c[1]}

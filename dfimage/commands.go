@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/brucesho/dockerfillers/utils"
 )
 
@@ -42,11 +42,23 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 	if dockerInfo.StorageDriver.Kind == "aufs" {
 		aufsRootDir := dockerInfo.StorageDriver.RootDir
-		imageId := args[0]
+		imageIds, err := utils.GetImageIdsFromName(args[0])
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return err
+		}
+		
+		if len(imageIds) == 0 {
+			fmt.Printf("No matching images found\n")
+			return nil
+		}
 
-		imageDiffDir := utils.AufsGetDiffDir(aufsRootDir, imageId)
+		for _, imageId := range imageIds {
+			imageDiffDir := utils.AufsGetDiffDir(aufsRootDir, imageId)
 
-		fmt.Printf("diff dir of %s is: %s\n", imageId, imageDiffDir)
+			fmt.Printf("diff dir of %s is: %s\n", imageId, imageDiffDir)
+		}
+
 	}
 	return nil
 }

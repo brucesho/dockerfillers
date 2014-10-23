@@ -6,21 +6,21 @@ import (
 )
 
 type DockerStorageDriver struct {
-	Kind	string
-	RootDir	string
+	Kind    string
+	RootDir string
 }
 
 type DockerInfo struct {
-	StorageDriver        DockerStorageDriver
+	StorageDriver DockerStorageDriver
 }
 
 func GetDockerInfo() (DockerInfo, error) {
 	var dockerStorageDriver = DockerStorageDriver{
-		Kind: "",
+		Kind:    "",
 		RootDir: "",
 	}
 
-	var dockerInfo = DockerInfo {
+	var dockerInfo = DockerInfo{
 		StorageDriver: dockerStorageDriver,
 	}
 

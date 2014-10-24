@@ -1,9 +1,37 @@
 package utils
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
+
+type ChangeType int
+
+const (
+	ChangeModify = iota
+	ChangeAdd
+	ChangeDelete
+)
+
+type Change struct {
+	Path string
+	Kind ChangeType
+}
+
+func (change *Change) String() string {
+	var kind string
+	switch change.Kind {
+	case ChangeModify:
+		kind = "C"
+	case ChangeAdd:
+		kind = "A"
+	case ChangeDelete:
+		kind = "D"
+	}
+	return fmt.Sprintf("%s %s", kind, change.Path)
+}
 
 func GetImageIdsFromName(imageName string) ([]string, error) {
 	nameTagPair := strings.SplitN(imageName, ":", 2)
@@ -30,4 +58,10 @@ func GetImageIdsFromName(imageName string) ([]string, error) {
 	}
 
 	return imageIds, nil
+}
+
+func sameFsTime(a, b time.Time) bool {
+	return a == b ||
+		(a.Unix() == b.Unix() &&
+			(a.Nanosecond() == 0 || b.Nanosecond() == 0))
 }

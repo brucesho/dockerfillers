@@ -36,7 +36,6 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 	dockerInfo, err := utils.GetDockerInfo()
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
 		return err
 	}
 
@@ -44,10 +43,9 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		aufsRootDir := dockerInfo.StorageDriver.RootDir
 		imageIds, err := utils.GetImageIdsFromName(args[0])
 		if err != nil {
-			fmt.Printf("Error: %s\n", err)
 			return err
 		}
-		
+
 		if len(imageIds) == 0 {
 			fmt.Printf("No matching images found\n")
 			return nil
@@ -55,8 +53,22 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 		for _, imageId := range imageIds {
 			imageDiffDir := utils.AufsGetDiffDir(aufsRootDir, imageId)
+			parentDiffDirs, err := utils.AufsGetParentDiffDirs(aufsRootDir, imageId)
+			if err != nil {
+				return err
+			}
 
 			fmt.Printf("diff dir of %s is: %s\n", imageId, imageDiffDir)
+			fmt.Printf("diff dirs of parents are: %s\n", parentDiffDirs)
+
+			changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
+			if err != nil {
+				return err
+			}
+
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+			}
 		}
 
 	}

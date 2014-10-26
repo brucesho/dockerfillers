@@ -52,6 +52,7 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 	var changes []Change
 	err := filepath.Walk(rw, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
+			fmt.Printf("error while walking the file system, path: %s, error:%s", path, err)
 			return err
 		}
 

@@ -58,9 +58,6 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 				return err
 			}
 
-			fmt.Printf("diff dir of %s is: %s\n", imageId, imageDiffDir)
-			fmt.Printf("diff dirs of parents are: %s\n", parentDiffDirs)
-
 			changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
 			if err != nil {
 				return err

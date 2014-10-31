@@ -21,7 +21,6 @@ func (cmdSet *CommandSet) CmdHelp(args ...string) error {
 	return nil
 }
 
-
 func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 	if len(args) != 1 {
 		return errors.New("IMAGE is a required arg")

@@ -23,7 +23,8 @@ func (cmdSet *CommandSet) CmdHelp(args ...string) error {
 
 func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 	if len(args) != 1 {
-		return errors.New("IMAGE is a required arg")
+		fmt.Println("Usage: diffchanges [IMAGE]")
+		return nil
 	}
 
 	dockerInfo, err := utils.GetDockerInfo()
@@ -39,8 +40,7 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		}
 
 		if len(imageIds) == 0 {
-			fmt.Printf("No matching images found\n")
-			return nil
+			return fmt.Errorf("No matching image found: %s", args[0])
 		}
 
 		for _, imageId := range imageIds {
@@ -68,7 +68,8 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 	if len(args) != 1 {
-		return errors.New("IMAGE is a required arg")
+		fmt.Println("Usage: diffsize [IMAGE]")
+		return nil
 	}
 
 	dockerInfo, err := utils.GetDockerInfo()
@@ -84,8 +85,7 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		}
 
 		if len(imageIds) == 0 {
-			fmt.Printf("No matching images found\n")
-			return nil
+			return fmt.Errorf("No matching image found: %s", args[0])
 		}
 
 		for _, imageId := range imageIds {

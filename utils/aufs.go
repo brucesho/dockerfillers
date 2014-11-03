@@ -50,6 +50,7 @@ func AufsGetParentIds(aufsRootDir, imageId string) ([]string, error) {
 
 func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 	var changes []Change
+
 	err := filepath.Walk(rw, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("error while walking the file system, path: %s, error:%s", path, err)
@@ -75,6 +76,7 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 
 		change := Change{
 			Path: path,
+			Size: 0,
 		}
 
 		// Find out what kind of modification happened
@@ -84,9 +86,31 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 			originalFile := file[len(".wh."):]
 			change.Path = filepath.Join(filepath.Dir(path), originalFile)
 			change.Kind = ChangeDelete
+			// find the original file and get its size
+			for _, layer := range layers {
+				stat, err := os.Stat(filepath.Join(layer, filepath.Dir(path), originalFile))
+				if err != nil && !os.IsNotExist(err) {
+					return err
+				}
+				if err == nil {
+					// found file, or maybe it's a directory?
+					if stat.IsDir() {
+						// TODO: compute size of directory
+						dirSize, err := aufsGetDirTreeSize(filepath.Join(layer, filepath.Dir(path), originalFile))
+						if err != nil {
+							return err
+						}
+						change.Size -= dirSize
+					} else {
+						change.Size = -stat.Size()
+					}
+					break
+				}
+			}
 		} else {
 			// Otherwise, the file was added
 			change.Kind = ChangeAdd
+			change.Size = f.Size()
 
 			// ...Unless it already existed in a top layer, in which case, it's a modification
 			for _, layer := range layers {
@@ -106,6 +130,7 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 						}
 					}
 					change.Kind = ChangeModify
+					change.Size = f.Size() - stat.Size()
 					break
 				}
 			}
@@ -121,87 +146,35 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 	return changes, nil
 }
 
-func AufsGetChangesSize(layers []string, rw string) (int64, error) {
-	var changesSize int64 = 0
-	err := filepath.Walk(rw, func(path string, f os.FileInfo, err error) error {
+func aufsGetDirTreeSize(dir string) (int64, error) {
+	var size int64 = 0
+
+	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("error while walking the file system, path: %s, error:%s", path, err)
 			return err
 		}
 
 		// Rebase path
-		path, err = filepath.Rel(rw, path)
+		path, err = filepath.Rel(dir, path)
 		if err != nil {
 			return err
 		}
 		path = filepath.Join("/", path)
-
-		// Skip root
-		if path == "/" {
-			return nil
-		}
 
 		// Skip AUFS metadata
 		if matched, err := filepath.Match("/.wh..wh.*", path); err != nil || matched {
 			return err
 		}
 
-		var changeSize int64 = 0
-
-		// Find out what kind of modification happened
 		file := filepath.Base(path)
-		// If there is a whiteout, then the file was removed
 		if strings.HasPrefix(file, ".wh.") {
-			originalFile := file[len(".wh."):]
-			// find the original file and get its size
-			for _, layer := range layers {
-				stat, err := os.Stat(filepath.Join(layer, filepath.Dir(path), originalFile))
-				if err != nil && !os.IsNotExist(err) {
-					return err
-				}
-				if err == nil {
-					// found file, or maybe it's a directory?
-					if stat.IsDir() && f.IsDir() {
-						// TODO: compute size of directory
-						fmt.Printf("found a directory whiteout: %s\n", path)
-					} else {
-						changeSize = -stat.Size()
-					}
-					break
-				}
-			}
-		} else {
-			changeSize = f.Size()
-
-			// ...Unless it already existed in a top layer, in which case, it's a modification
-			for _, layer := range layers {
-				stat, err := os.Stat(filepath.Join(layer, path))
-				if err != nil && !os.IsNotExist(err) {
-					return err
-				}
-				if err == nil {
-					// The file existed in the top layer, so that's a modification
-
-					// However, if it's a directory, maybe it wasn't actually modified.
-					// If you modify /foo/bar/baz, then /foo will be part of the changed files only because it's the parent of bar
-					if stat.IsDir() && f.IsDir() {
-						if f.Size() == stat.Size() && f.Mode() == stat.Mode() && sameFsTime(f.ModTime(), stat.ModTime()) {
-							// Both directories are the same, don't record the change
-							return nil
-						}
-					}
-					changeSize = f.Size() - stat.Size()
-					break
-				}
-			}
+			return nil
 		}
 
-		// Record change size
-		changesSize += changeSize
+		size += f.Size()
 		return nil
 	})
-	if err != nil && !os.IsNotExist(err) {
-		return 0, err
-	}
-	return changesSize, nil
+
+	return size, err
 }

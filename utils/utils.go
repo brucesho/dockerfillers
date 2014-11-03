@@ -18,6 +18,7 @@ const (
 type Change struct {
 	Path string
 	Kind ChangeType
+	Size int64
 }
 
 func (change *Change) String() string {
@@ -30,7 +31,7 @@ func (change *Change) String() string {
 	case ChangeDelete:
 		kind = "D"
 	}
-	return fmt.Sprintf("%s %s", kind, change.Path)
+	return fmt.Sprintf("%s %s %d", kind, change.Path, change.Size)
 }
 
 func GetImageIdsFromName(imageName string) ([]string, error) {

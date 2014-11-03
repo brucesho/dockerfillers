@@ -59,7 +59,6 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 				fmt.Printf("%s\n", change.String())
 			}
 		}
-
 	} else {
 		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}
@@ -95,14 +94,18 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 				return err
 			}
 
-			changesSize, err := utils.AufsGetChangesSize(parentDiffDirs, imageDiffDir)
+			changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("%d\n", changesSize)
+			var totalSize int64 = 0
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+				totalSize += change.Size
+			}
+			fmt.Printf("%d\n", totalSize)
 		}
-
 	} else {
 		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}

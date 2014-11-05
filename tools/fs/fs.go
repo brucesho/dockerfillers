@@ -77,6 +77,8 @@ func createFile(filepath string, size int) error {
 		return err
 	}
 
+	defer file.Close()
+
 	// write to file in 1K blocks
 	for bytesWritten := 0; bytesWritten < size; {
 		bytesToWrite := 1024
@@ -87,10 +89,6 @@ func createFile(filepath string, size int) error {
 			return err
 		}
 		bytesWritten += bytesToWrite
-	}
-
-	if err := file.Close(); err != nil {
-		return err
 	}
 
 	return nil

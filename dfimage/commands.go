@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/brucesho/dockerfillers/utils"
+	"path"
 )
 
 func (cmdSet *CommandSet) CmdHelp(args ...string) error {
@@ -27,25 +28,26 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		return nil
 	}
 
-	dockerInfo, err := utils.GetDockerInfo()
+	imageIds, err := utils.GetImageIdsFromName(args[0])
 	if err != nil {
 		return err
 	}
 
-	if dockerInfo.StorageDriver.Kind == "aufs" {
-		aufsRootDir := dockerInfo.StorageDriver.RootDir
-		imageIds, err := utils.GetImageIdsFromName(args[0])
-		if err != nil {
-			return err
-		}
+	if len(imageIds) == 0 {
+		return fmt.Errorf("No matching image found: %s", args[0])
+	}
 
-		if len(imageIds) == 0 {
-			return fmt.Errorf("No matching image found: %s", args[0])
-		}
+	dockerInfo, err := utils.GetDockerInfo()
+	if err != nil {
+		return err
+	}
+	driverRootDir := dockerInfo.StorageDriver.RootDir
 
+	switch dockerInfo.StorageDriver.Kind {
+	case "aufs":
 		for _, imageId := range imageIds {
-			imageDiffDir := utils.AufsGetDiffDir(aufsRootDir, imageId)
-			parentDiffDirs, err := utils.AufsGetParentDiffDirs(aufsRootDir, imageId)
+			imageDiffDir := utils.AufsGetDiffDir(driverRootDir, imageId)
+			parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
 			if err != nil {
 				return err
 			}
@@ -59,9 +61,45 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 				fmt.Printf("%s\n", change.String())
 			}
 		}
-	} else {
+
+	case "devicemapper":
+		fmt.Printf("devicemapper root dir: %s\n", driverRootDir)
+		for _, imageId := range imageIds {
+
+			parentImage, err := utils.GetImageParent(path.Dir(driverRootDir), imageId)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Parent image of %s is: %s\n", imageId, parentImage)
+
+			/*** Need to find image parent, mount image and parent, and perform recursive comparison ***/
+			/*
+				mp := path.Join(driverRootDir, "mnt", imageId)
+				if err := utils.Devicemapper.Mount(driverRootDir, imageId, mp); err != nil {
+					return err
+				}
+
+				parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
+				if err != nil {
+					return err
+				}
+
+				changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
+				if err != nil {
+					return err
+				}
+
+				for _, change := range changes {
+					fmt.Printf("%s\n", change.String())
+				}
+			*/
+		}
+
+	default:
 		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}
+
 	return nil
 }
 
@@ -76,7 +114,8 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		return err
 	}
 
-	if dockerInfo.StorageDriver.Kind == "aufs" {
+	switch dockerInfo.StorageDriver.Kind {
+	case "aufs":
 		aufsRootDir := dockerInfo.StorageDriver.RootDir
 		imageIds, err := utils.GetImageIdsFromName(args[0])
 		if err != nil {
@@ -106,8 +145,9 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 			}
 			fmt.Printf("%d\n", totalSize)
 		}
-	} else {
+	default:
 		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}
+
 	return nil
 }

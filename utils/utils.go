@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 )
@@ -59,6 +62,26 @@ func GetImageIdsFromName(imageName string) ([]string, error) {
 	}
 
 	return imageIds, nil
+}
+
+func GetImageParent(dockerRoot, imageId string) (string, error) {
+	imageJsonBytes, err := ioutil.ReadFile(path.Join(dockerRoot, "graph", imageId, "json"))
+	if err != nil {
+		return "", err
+	}
+
+	var imageJson interface{}
+	if err := json.Unmarshal(imageJsonBytes, &imageJson); err != nil {
+		return "", err
+	}
+
+	m := imageJson.(map[string]interface{})
+	parent, ok := m["parent"]
+	if !ok {
+		return "", fmt.Errorf("image %s has no parent", imageId)
+	}
+
+	return parent.(string), nil
 }
 
 func sameFsTime(a, b time.Time) bool {

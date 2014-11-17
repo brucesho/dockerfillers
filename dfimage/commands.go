@@ -73,12 +73,13 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 			fmt.Printf("Parent image of %s is: %s\n", imageId, parentImage)
 
+			mp := path.Join(driverRootDir, "mnt", imageId)
+			if err := utils.DeviceMapperMount(driverRootDir, imageId, mp); err != nil {
+				return err
+			}
+
 			/*** Need to find image parent, mount image and parent, and perform recursive comparison ***/
 			/*
-				mp := path.Join(driverRootDir, "mnt", imageId)
-				if err := utils.Devicemapper.Mount(driverRootDir, imageId, mp); err != nil {
-					return err
-				}
 
 				parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
 				if err != nil {

@@ -3,8 +3,40 @@ package utils
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path"
+	"strings"
 	"syscall"
 )
+
+func DeviceMapperGetRootFS(driverRootDir, imageId string) (string, string, error) {
+	// Need to mount the image. The easiest way for us to do that is to start a container based on the image.
+	containerId, err := DeviceMapperRunContainer(imageId)
+	if err != nil {
+		return "", "", err
+	}
+
+	rootfsPath := path.Join(driverRootDir, "mnt", containerId, "rootfs")
+
+	return rootfsPath, containerId, nil
+}
+
+func DeviceMapperRunContainer(imageId string) (string, error) {
+	out, err := exec.Command("docker", "run", "-id", imageId, "/bin/sh").Output()
+	if err != nil {
+		return "", err
+	}
+
+	containerId := strings.TrimSpace(string(out))
+
+	return containerId, nil
+}
+
+func DeviceMapperRemoveContainer(containerId string) error {
+	_, err := exec.Command("docker", "rm", "-f", containerId).Output()
+
+	return err
+}
 
 func DeviceMapperMount(driverRootDir, imageId, mountPoint string) error {
 	deviceFile, err := deviceMapperGetDeviceFile(driverRootDir, imageId)

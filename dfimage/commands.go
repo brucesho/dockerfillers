@@ -73,10 +73,27 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 
 			fmt.Printf("Parent image of %s is: %s\n", imageId, parentImage)
 
-			mp := path.Join(driverRootDir, "mnt", imageId)
-			if err := utils.DeviceMapperMount(driverRootDir, imageId, mp); err != nil {
+			rootfsPath, containerId, err := utils.DeviceMapperGetRootFS(driverRootDir, imageId)
+			if err != nil {
 				return err
 			}
+
+			//defer utils.DeviceMapperRemoveContainer(containerId)
+
+			parentRootfsPath, parentContainerId, err := utils.DeviceMapperGetRootFS(driverRootDir, parentImage)
+			if err != nil {
+				return err
+			}
+
+			//defer utils.DeviceMapperRemoveContainer(parentContainerId)
+
+			fmt.Printf("Started container: %s\n", containerId)
+			fmt.Printf("rootfsPath: %s\n", rootfsPath)
+
+			fmt.Printf("Started container: %s\n", parentContainerId)
+			fmt.Printf("parent rootfsPath: %s\n", parentRootfsPath)
+
+			// do the same for parentImage, compare rootfs dirs and rm containers
 
 			/*** Need to find image parent, mount image and parent, and perform recursive comparison ***/
 			/*

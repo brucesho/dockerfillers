@@ -95,7 +95,6 @@ func AufsGetChanges(layers []string, rw string) ([]Change, error) {
 				if err == nil {
 					// found file, or maybe it's a directory?
 					if stat.IsDir() {
-						// TODO: compute size of directory
 						dirSize, err := aufsGetDirTreeSize(filepath.Join(layer, filepath.Dir(path), originalFile))
 						if err != nil {
 							return err

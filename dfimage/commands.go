@@ -63,7 +63,6 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		}
 
 	case "devicemapper":
-		fmt.Printf("devicemapper root dir: %s\n", driverRootDir)
 		for _, imageId := range imageIds {
 
 			parentImage, err := utils.GetImageParent(path.Dir(driverRootDir), imageId)
@@ -71,47 +70,27 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 				return err
 			}
 
-			fmt.Printf("Parent image of %s is: %s\n", imageId, parentImage)
-
 			rootfsPath, containerId, err := utils.DeviceMapperGetRootFS(driverRootDir, imageId)
 			if err != nil {
 				return err
 			}
-
-			//defer utils.DeviceMapperRemoveContainer(containerId)
+			defer utils.DeviceMapperRemoveContainer(containerId)
 
 			parentRootfsPath, parentContainerId, err := utils.DeviceMapperGetRootFS(driverRootDir, parentImage)
 			if err != nil {
 				return err
 			}
+			defer utils.DeviceMapperRemoveContainer(parentContainerId)
 
-			//defer utils.DeviceMapperRemoveContainer(parentContainerId)
+			changes, err := utils.ChangesDirs(rootfsPath, parentRootfsPath)
+			if err != nil {
+				return err
+			}
 
-			fmt.Printf("Started container: %s\n", containerId)
-			fmt.Printf("rootfsPath: %s\n", rootfsPath)
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+			}
 
-			fmt.Printf("Started container: %s\n", parentContainerId)
-			fmt.Printf("parent rootfsPath: %s\n", parentRootfsPath)
-
-			// do the same for parentImage, compare rootfs dirs and rm containers
-
-			/*** Need to find image parent, mount image and parent, and perform recursive comparison ***/
-			/*
-
-				parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
-				if err != nil {
-					return err
-				}
-
-				changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
-				if err != nil {
-					return err
-				}
-
-				for _, change := range changes {
-					fmt.Printf("%s\n", change.String())
-				}
-			*/
 		}
 
 	default:

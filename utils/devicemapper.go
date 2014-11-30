@@ -79,17 +79,3 @@ func major(device uint64) uint64 {
 func minor(device uint64) uint64 {
 	return (device & 0xff) | ((device >> 12) & 0xfff00)
 }
-
-func fileExists(filename string) (bool, error) {
-	_, err := os.Stat(filename)
-
-	if err == nil {
-		return true, nil
-	}
-
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
-}

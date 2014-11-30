@@ -4,38 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
-
-type ChangeType int
-
-const (
-	ChangeModify = iota
-	ChangeAdd
-	ChangeDelete
-)
-
-type Change struct {
-	Path string
-	Kind ChangeType
-	Size int64
-}
-
-func (change *Change) String() string {
-	var kind string
-	switch change.Kind {
-	case ChangeModify:
-		kind = "C"
-	case ChangeAdd:
-		kind = "A"
-	case ChangeDelete:
-		kind = "D"
-	}
-	return fmt.Sprintf("%s %s %d", kind, change.Path, change.Size)
-}
 
 func GetImageIdsFromName(imageName string) ([]string, error) {
 	nameTagPair := strings.SplitN(imageName, ":", 2)
@@ -88,4 +64,56 @@ func sameFsTime(a, b time.Time) bool {
 	return a == b ||
 		(a.Unix() == b.Unix() &&
 			(a.Nanosecond() == 0 || b.Nanosecond() == 0))
+}
+
+func sameFsTimeSpec(a, b syscall.Timespec) bool {
+	return a.Sec == b.Sec &&
+		(a.Nsec == b.Nsec || a.Nsec == 0 || b.Nsec == 0)
+}
+
+func fileExists(filename string) (bool, error) {
+	_, err := os.Stat(filename)
+
+	if err == nil {
+		return true, nil
+	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
+}
+
+func GetDirTreeSize(dir string) (int64, error) {
+	var size int64 = 0
+
+	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("error while walking the file system, path: %s, error:%s", path, err)
+			return err
+		}
+
+		// Rebase path
+		path, err = filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		path = filepath.Join("/", path)
+
+		// Skip AUFS metadata
+		if matched, err := filepath.Match("/.wh..wh.*", path); err != nil || matched {
+			return err
+		}
+
+		file := filepath.Base(path)
+		if strings.HasPrefix(file, ".wh.") {
+			return nil
+		}
+
+		size += f.Size()
+		return nil
+	})
+
+	return size, err
 }

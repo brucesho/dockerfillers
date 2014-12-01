@@ -90,7 +90,6 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 			for _, change := range changes {
 				fmt.Printf("%s\n", change.String())
 			}
-
 		}
 
 	default:
@@ -106,26 +105,26 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		return nil
 	}
 
-	dockerInfo, err := utils.GetDockerInfo()
+	imageIds, err := utils.GetImageIdsFromName(args[0])
 	if err != nil {
 		return err
 	}
 
+	if len(imageIds) == 0 {
+		return fmt.Errorf("No matching image found: %s", args[0])
+	}
+
+	dockerInfo, err := utils.GetDockerInfo()
+	if err != nil {
+		return err
+	}
+	driverRootDir := dockerInfo.StorageDriver.RootDir
+
 	switch dockerInfo.StorageDriver.Kind {
 	case "aufs":
-		aufsRootDir := dockerInfo.StorageDriver.RootDir
-		imageIds, err := utils.GetImageIdsFromName(args[0])
-		if err != nil {
-			return err
-		}
-
-		if len(imageIds) == 0 {
-			return fmt.Errorf("No matching image found: %s", args[0])
-		}
-
 		for _, imageId := range imageIds {
-			imageDiffDir := utils.AufsGetDiffDir(aufsRootDir, imageId)
-			parentDiffDirs, err := utils.AufsGetParentDiffDirs(aufsRootDir, imageId)
+			imageDiffDir := utils.AufsGetDiffDir(driverRootDir, imageId)
+			parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
 			if err != nil {
 				return err
 			}
@@ -142,6 +141,40 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 			}
 			fmt.Printf("%d\n", totalSize)
 		}
+
+	case "devicemapper":
+		for _, imageId := range imageIds {
+
+			parentImage, err := utils.GetImageParent(path.Dir(driverRootDir), imageId)
+			if err != nil {
+				return err
+			}
+
+			rootfsPath, containerId, err := utils.DeviceMapperGetRootFS(driverRootDir, imageId)
+			if err != nil {
+				return err
+			}
+			defer utils.DeviceMapperRemoveContainer(containerId)
+
+			parentRootfsPath, parentContainerId, err := utils.DeviceMapperGetRootFS(driverRootDir, parentImage)
+			if err != nil {
+				return err
+			}
+			defer utils.DeviceMapperRemoveContainer(parentContainerId)
+
+			changes, err := utils.ChangesDirs(rootfsPath, parentRootfsPath)
+			if err != nil {
+				return err
+			}
+
+			var totalSize int64 = 0
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+				totalSize += change.Size
+			}
+			fmt.Printf("%d\n", totalSize)
+		}
+
 	default:
 		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}

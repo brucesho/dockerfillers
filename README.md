@@ -17,6 +17,11 @@ dfimage currently works by analyzing the data managed by the Docker storage driv
 
 Currently supported storage backends:
     * aufs
-
-Next to be supported storage backends:
     * devicemapper
+
+Build
+=====
+
+cd dfimage; go build
+
+

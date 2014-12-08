@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/brucesho/dockerfillers/utils"
-	"path"
 )
 
 func (cmdSet *CommandSet) CmdHelp(args ...string) error {
@@ -37,63 +36,15 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		return fmt.Errorf("No matching image found: %s", args[0])
 	}
 
-	dockerInfo, err := utils.GetDockerInfo()
-	if err != nil {
-		return err
-	}
-	driverRootDir := dockerInfo.StorageDriver.RootDir
-
-	switch dockerInfo.StorageDriver.Kind {
-	case "aufs":
-		for _, imageId := range imageIds {
-			imageDiffDir := utils.AufsGetDiffDir(driverRootDir, imageId)
-			parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
-			if err != nil {
-				return err
-			}
-
-			changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
-			if err != nil {
-				return err
-			}
-
-			for _, change := range changes {
-				fmt.Printf("%s\n", change.String())
-			}
+	for _, imageId := range imageIds {
+		changes, err := utils.GetChangesRelativeToParent(imageId)
+		if err != nil {
+			return err
 		}
 
-	case "devicemapper":
-		for _, imageId := range imageIds {
-
-			parentImage, err := utils.GetImageParent(path.Dir(driverRootDir), imageId)
-			if err != nil {
-				return err
-			}
-
-			rootfsPath, containerId, err := utils.DeviceMapperGetRootFS(driverRootDir, imageId)
-			if err != nil {
-				return err
-			}
-			defer utils.DeviceMapperRemoveContainer(containerId)
-
-			parentRootfsPath, parentContainerId, err := utils.DeviceMapperGetRootFS(driverRootDir, parentImage)
-			if err != nil {
-				return err
-			}
-			defer utils.DeviceMapperRemoveContainer(parentContainerId)
-
-			changes, err := utils.ChangesDirs(rootfsPath, parentRootfsPath)
-			if err != nil {
-				return err
-			}
-
-			for _, change := range changes {
-				fmt.Printf("%s\n", change.String())
-			}
+		for _, change := range changes {
+			fmt.Printf("%s\n", change.String())
 		}
-
-	default:
-		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
 	}
 
 	return nil
@@ -114,69 +65,18 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		return fmt.Errorf("No matching image found: %s", args[0])
 	}
 
-	dockerInfo, err := utils.GetDockerInfo()
-	if err != nil {
-		return err
-	}
-	driverRootDir := dockerInfo.StorageDriver.RootDir
-
-	switch dockerInfo.StorageDriver.Kind {
-	case "aufs":
-		for _, imageId := range imageIds {
-			imageDiffDir := utils.AufsGetDiffDir(driverRootDir, imageId)
-			parentDiffDirs, err := utils.AufsGetParentDiffDirs(driverRootDir, imageId)
-			if err != nil {
-				return err
-			}
-
-			changes, err := utils.AufsGetChanges(parentDiffDirs, imageDiffDir)
-			if err != nil {
-				return err
-			}
-
-			var totalSize int64 = 0
-			for _, change := range changes {
-				fmt.Printf("%s\n", change.String())
-				totalSize += change.Size
-			}
-			fmt.Printf("%d\n", totalSize)
+	for _, imageId := range imageIds {
+		changes, err := utils.GetChangesRelativeToParent(imageId)
+		if err != nil {
+			return err
 		}
 
-	case "devicemapper":
-		for _, imageId := range imageIds {
-
-			parentImage, err := utils.GetImageParent(path.Dir(driverRootDir), imageId)
-			if err != nil {
-				return err
-			}
-
-			rootfsPath, containerId, err := utils.DeviceMapperGetRootFS(driverRootDir, imageId)
-			if err != nil {
-				return err
-			}
-			defer utils.DeviceMapperRemoveContainer(containerId)
-
-			parentRootfsPath, parentContainerId, err := utils.DeviceMapperGetRootFS(driverRootDir, parentImage)
-			if err != nil {
-				return err
-			}
-			defer utils.DeviceMapperRemoveContainer(parentContainerId)
-
-			changes, err := utils.ChangesDirs(rootfsPath, parentRootfsPath)
-			if err != nil {
-				return err
-			}
-
-			var totalSize int64 = 0
-			for _, change := range changes {
-				fmt.Printf("%s\n", change.String())
-				totalSize += change.Size
-			}
-			fmt.Printf("%d\n", totalSize)
+		var totalSize int64 = 0
+		for _, change := range changes {
+			fmt.Printf("%s\n", change.String())
+			totalSize += change.Size
 		}
-
-	default:
-		return fmt.Errorf("Error: storage driver %s is unsupported.\n", dockerInfo.StorageDriver.Kind)
+		fmt.Printf("%d\n", totalSize)
 	}
 
 	return nil

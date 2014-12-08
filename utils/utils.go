@@ -117,3 +117,49 @@ func GetDirTreeSize(dir string) (int64, error) {
 
 	return size, err
 }
+
+func GetChangesRelativeToParent(imageId string) ([]Change, error) {
+	dockerInfo, err := GetDockerInfo()
+	if err != nil {
+		return nil, err
+	}
+	return getChangesRelativeToParentHelper(imageId, dockerInfo.StorageDriver.Kind, dockerInfo.StorageDriver.RootDir)
+}
+
+func getChangesRelativeToParentHelper(imageId, storageDriverKind, driverRootDir string) ([]Change, error) {
+	switch storageDriverKind {
+	case "aufs":
+		imageDiffDir := AufsGetDiffDir(driverRootDir, imageId)
+		parentDiffDirs, err := AufsGetParentDiffDirs(driverRootDir, imageId)
+		if err != nil {
+			return nil, err
+		}
+
+		return AufsGetChanges(parentDiffDirs, imageDiffDir)
+
+	case "devicemapper":
+		parentImage, err := GetImageParent(path.Dir(driverRootDir), imageId)
+		if err != nil {
+			return nil, err
+		}
+
+		rootfsPath, containerId, err := DeviceMapperGetRootFS(driverRootDir, imageId)
+		if err != nil {
+			return nil, err
+		}
+		defer DeviceMapperRemoveContainer(containerId)
+
+		parentRootfsPath, parentContainerId, err := DeviceMapperGetRootFS(driverRootDir, parentImage)
+		if err != nil {
+			return nil, err
+		}
+		defer DeviceMapperRemoveContainer(parentContainerId)
+
+		return ChangesDirs(rootfsPath, parentRootfsPath)
+
+	default:
+		return nil, fmt.Errorf("Error: storage driver %s is unsupported.\n", storageDriverKind)
+	}
+
+	return nil, nil
+}

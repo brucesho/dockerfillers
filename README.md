@@ -24,4 +24,20 @@ Build
 
 cd dfimage; go build
 
+Use
+===
+
+Usage: dfimage command [arg...]
+
+Commands:
+   diffsize          size of an image (in bytes), relative to its parent
+   diffchanges       changes of an image relative to its parent
+   help              lists available commands
+
+
+Don't forget to use sudo to run dfimage (see above for the reason).
+
+Examples
+========
+
 

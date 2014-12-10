@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/brucesho/dockerfillers/utils"
+	"path"
 )
 
 func (cmdSet *CommandSet) CmdHelp(args ...string) error {
@@ -36,14 +37,33 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		return fmt.Errorf("No matching image found: %s", args[0])
 	}
 
+	dockerInfo, err := utils.GetDockerInfo()
+	if err != nil {
+		return err
+	}
+
 	for _, imageId := range imageIds {
-		changes, err := utils.GetChangesRelativeToParent(imageId)
+		parentImage, err := utils.GetImageParent(path.Dir(dockerInfo.StorageDriver.RootDir), imageId)
 		if err != nil {
 			return err
 		}
 
-		for _, change := range changes {
-			fmt.Printf("%s\n", change.String())
+		for currentImageId := imageId; parentImage != ""; {
+			fmt.Printf("\nImage id: %s:\n", currentImageId)
+			changes, err := utils.GetChangesRelativeToParent(currentImageId)
+			if err != nil {
+				return err
+			}
+
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+			}
+
+			currentImageId = parentImage
+			parentImage, err = utils.GetImageParent(path.Dir(dockerInfo.StorageDriver.RootDir), currentImageId)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -65,18 +85,37 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		return fmt.Errorf("No matching image found: %s", args[0])
 	}
 
+	dockerInfo, err := utils.GetDockerInfo()
+	if err != nil {
+		return err
+	}
+
 	for _, imageId := range imageIds {
-		changes, err := utils.GetChangesRelativeToParent(imageId)
+		parentImage, err := utils.GetImageParent(path.Dir(dockerInfo.StorageDriver.RootDir), imageId)
 		if err != nil {
 			return err
 		}
 
-		var totalSize int64 = 0
-		for _, change := range changes {
-			fmt.Printf("%s\n", change.String())
-			totalSize += change.Size
+		for currentImageId := imageId; parentImage != ""; {
+			fmt.Printf("\nImage id: %s:\n", currentImageId)
+			changes, err := utils.GetChangesRelativeToParent(currentImageId)
+			if err != nil {
+				return err
+			}
+
+			var totalSize int64 = 0
+			for _, change := range changes {
+				fmt.Printf("%s\n", change.String())
+				totalSize += change.Size
+			}
+			fmt.Printf("%d\n", totalSize)
+
+			currentImageId = parentImage
+			parentImage, err = utils.GetImageParent(path.Dir(dockerInfo.StorageDriver.RootDir), currentImageId)
+			if err != nil {
+				return err
+			}
 		}
-		fmt.Printf("%d\n", totalSize)
 	}
 
 	return nil

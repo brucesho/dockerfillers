@@ -54,7 +54,7 @@ func GetImageParent(dockerRoot, imageId string) (string, error) {
 	m := imageJson.(map[string]interface{})
 	parent, ok := m["parent"]
 	if !ok {
-		return "", fmt.Errorf("image %s has no parent", imageId)
+		return "", nil
 	}
 
 	return parent.(string), nil

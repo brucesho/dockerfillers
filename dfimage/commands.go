@@ -49,7 +49,8 @@ func (cmdSet *CommandSet) CmdDiffchanges(args ...string) error {
 		}
 
 		for currentImageId := imageId; parentImage != ""; {
-			fmt.Printf("\nImage id: %s:\n", currentImageId)
+			currentImageNames, err := utils.GetImageNamesFromId(currentImageId)
+			fmt.Printf("\nImage id: %s %s:\n", currentImageId, currentImageNames)
 			changes, err := utils.GetChangesRelativeToParent(currentImageId)
 			if err != nil {
 				return err
@@ -97,7 +98,8 @@ func (cmdSet *CommandSet) CmdDiffsize(args ...string) error {
 		}
 
 		for currentImageId := imageId; parentImage != ""; {
-			fmt.Printf("\nImage id: %s:\n", currentImageId)
+			currentImageNames, err := utils.GetImageNamesFromId(currentImageId)
+			fmt.Printf("\nImage id: %s %s:\n", currentImageId, currentImageNames)
 			changes, err := utils.GetChangesRelativeToParent(currentImageId)
 			if err != nil {
 				return err

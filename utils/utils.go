@@ -40,6 +40,26 @@ func GetImageIdsFromName(imageName string) ([]string, error) {
 	return imageIds, nil
 }
 
+func GetImageNamesFromId(imageId string) ([]string, error) {
+	imageNames := make([]string, 0)
+	out, err := exec.Command("docker", "images", "--no-trunc").Output()
+	if err != nil {
+		return imageNames, err
+	}
+
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) >= 3 {
+			if fields[2] == imageId {
+				imageNames = append(imageNames, fmt.Sprintf("%s:%s", fields[0], fields[1]))
+			}
+		}
+	}
+
+	return imageNames, nil
+}
+
 func GetImageParent(dockerRoot, imageId string) (string, error) {
 	imageJsonBytes, err := ioutil.ReadFile(path.Join(dockerRoot, "graph", imageId, "json"))
 	if err != nil {

@@ -29,8 +29,8 @@ Build
 
 cd dfimage; go build
 
-Use
-===
+Usage
+=====
 
 Usage: dfimage command [arg...]
 

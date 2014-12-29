@@ -22,7 +22,9 @@ dfimage currently works by analyzing the data managed by the Docker storage driv
 
 Currently supported storage backends:
     * aufs
+
     * devicemapper
+
 
 Build
 =====
@@ -48,19 +50,30 @@ Example
 sudo ./dfimage diffsize busybox:latest
 
 Image id: e72ac664f4f0c6a061ac4ef332557a70d69b0c624b6add35f1c181ff7fff2287 [busybox:latest]:
+
 0
 
 Image id: e433a6c5b276a31aa38bf6eaba9cd1cfd69ea33f706ed72b3f20bafde5cd8644 []:
+
 A /bin 4096
+
 A /bin/ash 7
+
 A /bin/busybox 561992
+
 A /bin/cat 7
+
 A /bin/catv 7
+
 A /bin/chattr 7
+
 A /bin/chgrp 7
+
 ...
+
 2593047
 
 Image id: df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b []:
+
 0
 

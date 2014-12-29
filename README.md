@@ -20,9 +20,7 @@ The following commands are supported:
 
 dfimage currently works by analyzing the data managed by the Docker storage driver, hence it needs to be run with "sudo".
 
-Currently supported storage backends:
-    aufs
-    devicemapper
+Currently supported storage backends: aufs, devicemapper
 
 
 Build
